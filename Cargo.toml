@@ -1,0 +1,9 @@
+[package]
+name = "retry-cli"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+clap = { version = "3.1", features = ["derive"] }
+signal-hook = "0.3.14"
+humantime = "2.1"
