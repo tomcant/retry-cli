@@ -1,9 +1,8 @@
 use clap::Parser;
-use signal_hook::{consts::SIGTERM, flag};
-use std::process::{exit, Command};
-use std::sync::{atomic::AtomicBool, atomic::Ordering, Arc};
 use std::thread::sleep;
 use std::time::Duration;
+use tokio::process::Command;
+use tokio::signal::unix::{signal, SignalKind};
 
 /// A utility for retrying failed console commands
 #[derive(Parser)]
@@ -26,14 +25,14 @@ struct Args {
     command: Vec<String>,
 }
 
-fn main() -> Result<(), std::io::Error> {
+#[tokio::main]
+async fn main() -> Result<(), std::io::Error> {
     let args = Args::parse();
 
     let mut num_attempts = 0;
     let mut delay: Duration = args.delay.into();
 
-    let handle_sigterm = Arc::new(AtomicBool::new(false));
-    flag::register(SIGTERM, Arc::clone(&handle_sigterm))?;
+    let mut stream = signal(SignalKind::terminate())?;
 
     while num_attempts < args.attempts {
         let mut child = Command::new(&args.command[0])
@@ -42,25 +41,16 @@ fn main() -> Result<(), std::io::Error> {
             .expect("Could not spawn child process");
 
         loop {
-            match child.try_wait() {
-                Ok(Some(status)) => {
+            tokio::select! {
+                Ok(status) = child.wait() => {
                     if status.success() {
                         return Ok(());
                     }
                     break;
                 }
-                Ok(None) => {
-                    if handle_sigterm.load(Ordering::Relaxed) {
-                        if let Ok(()) = child.kill() {
-                            child.wait()?;
-                        }
-                        return Ok(());
-                    }
-                    sleep(Duration::from_millis(100));
-                }
-                Err(e) => {
-                    println!("Error waiting for child process: {e}");
-                    exit(1);
+                _ = stream.recv() => {
+                    child.kill().await?;
+                    return Ok(());
                 }
             }
         }
