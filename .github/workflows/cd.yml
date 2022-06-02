@@ -41,6 +41,7 @@ jobs:
           args: --release --target ${{ matrix.target }}
       - name: Package
         run: |
+          strip ./target/${{ matrix.target }}/release/retry-cli
           mv ./target/${{ matrix.target }}/release/retry-cli ./retry
           tar -czvf retry-cli-${{ matrix.build }}.tar.gz ./retry
       - name: Release
