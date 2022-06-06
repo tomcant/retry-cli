@@ -26,13 +26,14 @@ struct Args {
 }
 
 #[tokio::main]
-async fn main() -> Result<(), std::io::Error> {
+async fn run() -> Result<(), i32> {
     let args = Args::parse();
 
+    let mut last_exit_code = 1;
     let mut num_attempts = 0;
     let mut delay: Duration = args.delay.into();
 
-    let mut stream = signal(SignalKind::terminate())?;
+    let mut stream = signal(SignalKind::terminate()).expect("Could not create signal stream");
 
     while num_attempts < args.attempts {
         let mut child = Command::new(&args.command[0])
@@ -46,10 +47,13 @@ async fn main() -> Result<(), std::io::Error> {
                     if status.success() {
                         return Ok(());
                     }
+                    if let Some(code) = status.code() {
+                        last_exit_code = code;
+                    }
                     break;
                 }
                 _ = stream.recv() => {
-                    child.kill().await?;
+                    child.kill().await.expect("Could not kill child process");
                     return Ok(());
                 }
             }
@@ -75,5 +79,12 @@ async fn main() -> Result<(), std::io::Error> {
         num_attempts
     );
 
-    Ok(())
+    Err(last_exit_code)
+}
+
+fn main() {
+    std::process::exit(match run() {
+        Ok(_) => 0,
+        Err(code) => code,
+    });
 }
