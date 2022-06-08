@@ -63,8 +63,9 @@ async fn run() -> Result<(), i32> {
 
         if num_attempts < args.attempts {
             println!(
-                "Command `{}` exited with a non-zero status on attempt #{}. Retrying in {}.",
+                "Command `{}` exited with a non-zero code ({}) on attempt #{}. Retrying in {}.",
                 args.command.join(" "),
+                last_exit_code,
                 num_attempts,
                 humantime::Duration::from(delay)
             );
@@ -74,8 +75,9 @@ async fn run() -> Result<(), i32> {
     }
 
     println!(
-        "Command `{}` exited with a non-zero status on attempt #{}. Maximum attempts reached. Exiting.",
+        "Command `{}` exited with a non-zero code ({}) on attempt #{}. Maximum attempts reached. Exiting.",
         args.command.join(" "),
+        last_exit_code,
         num_attempts
     );
 
