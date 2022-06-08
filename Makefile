@@ -6,4 +6,4 @@ shell:
 
 .PHONY: format
 format:
-	@$(DOCKER) sh -c 'rustup component add rustfmt 2>/dev/null && rustfmt -l src/*.rs'
+	@$(DOCKER) sh -c 'rustup component add rustfmt 2>/dev/null && cargo fmt'
