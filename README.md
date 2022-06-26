@@ -1,6 +1,6 @@
 # retry-cli
 
-A utility for retrying failed console commands.
+A utility for retrying failed CLI commands.
 
 ```
 USAGE:
@@ -18,6 +18,9 @@ OPTIONS:
 
     -m, --delay-multiplier <DELAY_MULTIPLIER>
             Multiply the delay after each failed attempt [default: 1]
+
+    -q, --quiet
+            Suppress output when the wrapped command fails
 
     -h, --help
             Print help information
