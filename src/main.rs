@@ -20,6 +20,10 @@ struct Args {
     #[clap(short = 'm', long, default_value_t = 1, display_order = 3)]
     delay_multiplier: u32,
 
+    /// Suppress output when the wrapped command fails
+    #[clap(short, long, display_order = 4)]
+    quiet: bool,
+
     /// The command to run
     #[clap(required = true, last = true)]
     command: Vec<String>,
@@ -35,11 +39,19 @@ async fn run() -> Result<(), i32> {
 
     let mut stream = signal(SignalKind::terminate()).expect("Could not create signal stream");
 
+    let log_failure = make_error_logger(args.quiet);
+
     while num_attempts < args.attempts {
-        let mut child = Command::new(&args.command[0])
+        let spawn = Command::new(&args.command[0])
             .args(&args.command[1..])
-            .spawn()
-            .expect("Could not spawn child process");
+            .spawn();
+
+        if let Err(e) = spawn {
+            eprintln!("error: could not spawn child process; caused by: {e:?}");
+            return Err(1);
+        }
+
+        let mut child = spawn.unwrap();
 
         loop {
             tokio::select! {
@@ -53,7 +65,10 @@ async fn run() -> Result<(), i32> {
                     break;
                 }
                 _ = stream.recv() => {
-                    child.kill().await.expect("Could not kill child process");
+                    if let Err(e) = child.kill().await {
+                        eprintln!("error: could not kill child process; caused by: {e:?}");
+                        return Err(1);
+                    }
                     return Ok(());
                 }
             }
@@ -62,26 +77,34 @@ async fn run() -> Result<(), i32> {
         num_attempts += 1;
 
         if num_attempts < args.attempts {
-            println!(
+            log_failure(format!(
                 "Command `{}` exited with a non-zero code ({}) on attempt #{}. Retrying in {}.",
                 args.command.join(" "),
                 last_exit_code,
                 num_attempts,
                 humantime::Duration::from(delay)
-            );
+            ));
             sleep(delay);
             delay *= args.delay_multiplier;
         }
     }
 
-    println!(
+    log_failure(format!(
         "Command `{}` exited with a non-zero code ({}) on attempt #{}. Maximum attempts reached. Exiting.",
         args.command.join(" "),
         last_exit_code,
         num_attempts
-    );
+    ));
 
     Err(last_exit_code)
+}
+
+fn make_error_logger(quiet: bool) -> impl Fn(String) {
+    if quiet {
+        |_msg| {}
+    } else {
+        |msg| eprintln!("{msg}")
+    }
 }
 
 fn main() {
