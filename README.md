@@ -1,6 +1,6 @@
 # retry-cli
 
-A utility for retrying failed CLI commands.
+A utility for retrying failed CLI commands on Unix-like systems.
 
 ```
 USAGE:
