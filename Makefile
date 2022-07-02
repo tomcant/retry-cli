@@ -1,4 +1,4 @@
-DOCKER := docker run --rm -it -v $(PWD):/app:rw,delegated -w /app -e CARGO_HOME=/app/.cargo rust:1.60.0-slim-bullseye
+DOCKER := docker run --rm -it -v $(PWD):/app:rw,delegated -w /app -e CARGO_HOME=/app/.cargo rust:1.62.0-slim-bullseye
 
 .PHONY: shell
 shell:

@@ -1,8 +1,10 @@
 use clap::Parser;
+use futures::stream::StreamExt;
+use signal_hook::consts::signal;
+use signal_hook_tokio::Signals;
 use std::thread::sleep;
 use std::time::Duration;
 use tokio::process::Command;
-use tokio::signal::unix::{signal, SignalKind};
 
 /// A utility for retrying failed console commands
 #[derive(Parser)]
@@ -29,17 +31,28 @@ struct Args {
     command: Vec<String>,
 }
 
+fn main() {
+    std::process::exit(run());
+}
+
 #[tokio::main]
-async fn run() -> Result<(), i32> {
+async fn run() -> i32 {
     let args = Args::parse();
 
     let mut last_exit_code = 1;
     let mut num_attempts = 0;
+    let mut should_stop = false;
     let mut delay: Duration = args.delay.into();
 
-    let mut stream = signal(SignalKind::terminate()).expect("Could not create signal stream");
+    let mut signals = Signals::new(&[
+        signal::SIGHUP,
+        signal::SIGINT,
+        signal::SIGQUIT,
+        signal::SIGTERM,
+    ])
+    .expect("error: could not create signal stream");
 
-    let log_failure = make_error_logger(args.quiet);
+    let log_failed_attempt = make_error_logger(args.quiet);
 
     while num_attempts < args.attempts {
         let spawn = Command::new(&args.command[0])
@@ -48,7 +61,7 @@ async fn run() -> Result<(), i32> {
 
         if let Err(e) = spawn {
             eprintln!("error: could not spawn child process; caused by: {e:?}");
-            return Err(1);
+            return 1;
         }
 
         let mut child = spawn.unwrap();
@@ -57,19 +70,34 @@ async fn run() -> Result<(), i32> {
             tokio::select! {
                 Ok(status) = child.wait() => {
                     if status.success() {
-                        return Ok(());
+                        return 0;
                     }
+
                     if let Some(code) = status.code() {
                         last_exit_code = code;
+
+                        if !should_stop {
+                            break;
+                        }
+
+                        log_failed_attempt(format!(
+                            "command `{}` exited with non-zero code ({}) while handling stop signal",
+                            args.command.join(" "),
+                            code
+                        ));
                     }
-                    break;
+
+                    return last_exit_code;
                 }
-                _ = stream.recv() => {
-                    if let Err(e) = child.kill().await {
-                        eprintln!("error: could not kill child process; caused by: {e:?}");
-                        return Err(1);
+
+                Some(signal) = signals.next() => {
+                    if let Some(child_pid) = child.id() {
+                        unsafe {
+                            libc::kill(child_pid as i32, signal);
+                        }
                     }
-                    return Ok(());
+
+                    should_stop = true;
                 }
             }
         }
@@ -77,8 +105,8 @@ async fn run() -> Result<(), i32> {
         num_attempts += 1;
 
         if num_attempts < args.attempts {
-            log_failure(format!(
-                "Command `{}` exited with a non-zero code ({}) on attempt #{}. Retrying in {}.",
+            log_failed_attempt(format!(
+                "command `{}` exited with non-zero code ({}) on attempt #{}; retrying in {}",
                 args.command.join(" "),
                 last_exit_code,
                 num_attempts,
@@ -89,14 +117,14 @@ async fn run() -> Result<(), i32> {
         }
     }
 
-    log_failure(format!(
-        "Command `{}` exited with a non-zero code ({}) on attempt #{}. Maximum attempts reached. Exiting.",
+    log_failed_attempt(format!(
+        "command `{}` exited with non-zero code ({}) on attempt #{}; maximum attempts reached",
         args.command.join(" "),
         last_exit_code,
         num_attempts
     ));
 
-    Err(last_exit_code)
+    last_exit_code
 }
 
 fn make_error_logger(quiet: bool) -> impl Fn(String) {
@@ -105,11 +133,4 @@ fn make_error_logger(quiet: bool) -> impl Fn(String) {
     } else {
         |msg| eprintln!("{msg}")
     }
-}
-
-fn main() {
-    std::process::exit(match run() {
-        Ok(_) => 0,
-        Err(code) => code,
-    });
 }
