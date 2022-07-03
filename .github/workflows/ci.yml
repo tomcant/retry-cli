@@ -29,3 +29,41 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: check
+
+  tests:
+    needs: checks
+    name: Tests
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        build:
+          - x86_64-linux-gnu
+          - x86_64-linux-musl
+          - x86_64-macos
+        include:
+          - build: x86_64-linux-gnu
+            target: x86_64-unknown-linux-gnu
+            os: ubuntu-20.04
+          - build: x86_64-linux-musl
+            target: x86_64-unknown-linux-musl
+            os: ubuntu-20.04
+          - build: x86_64-macos
+            target: x86_64-apple-darwin
+            os: macos-11
+    steps:
+      - uses: actions/checkout@v1
+      - name: Install Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          target: ${{ matrix.target }}
+          override: true
+      - uses: Swatinem/rust-cache@v1
+      - name: Build
+        uses: actions-rs/cargo@v1
+        with:
+          command: build
+          args: --target ${{ matrix.target }}
+      - name: Test
+        run: ./test.sh ./target/${{ matrix.target }}/debug/retry-cli
