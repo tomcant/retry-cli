@@ -1,4 +1,6 @@
-# retry-cli
+# Retry
+
+![CI](https://github.com/tomcant/retry-cli/actions/workflows/ci.yml/badge.svg)
 
 A utility for retrying failed CLI commands on Unix-like systems.
 
