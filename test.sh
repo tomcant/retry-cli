@@ -51,22 +51,22 @@ assertEqual \
   "$(${BIN_PATH} --version | cut -d' ' -f2)"
 
 #
-# Given: The child exits zero
-#  Then: The parent exits zero
+# Given: The child exit code is zero
+#  Then: The exit code is zero
 #
 givenScript "exit 0"
-assertExitCode "The parent exits zero given the child exits zero" 0 "${BIN_PATH} -- ./script"
+assertExitCode "The exit code is zero when the child exit code is zero" 0 "${BIN_PATH} -- ./script"
 
 #
-# Given: The child exits non-zero
-#  Then: The parent matches the child's exit code
+# Given: The child exit code is non-zero
+#  Then: The exit code matches the child
 #
 givenScript "exit 2"
-assertExitCode "The parent matches the child's non-zero exit code" 2 "${BIN_PATH} -a 1 -- ./script"
+assertExitCode "The exit code matches the child when the child exit code is non-zero" 2 "${BIN_PATH} --attempts 1 -- ./script"
 
 #
 # Given: The child is running
-#  When: The parent receives a stop signal
+#  When: A stop signal is received
 #  Then: The stop signal is sent to the child
 #
 givenScript "
@@ -77,17 +77,38 @@ givenScript "
     sleep 1
   done
 "
+${BIN_PATH} -- ./script >output &
+processId=$!
 
-${BIN_PATH} -- ./script > ./output &
 sleep 1 # Give the child time to start; TODO: find a better way
 
-processId=$!
 kill -s TERM ${processId}
 wait ${processId} 2>/dev/null
 
 assertEqual \
-  "Stop signals received by the parent are sent to the child" \
+  "Stop signals are sent to the child" \
   "child received TERM signal" \
+  "$(cat ./output)"
+
+#
+# Given: The child exits non-zero,
+#        and there are attempts remaining
+#  When: A stop signal is received
+#  Then: No further attempts occur
+#
+givenScript "exit 1"
+${BIN_PATH} --attempts 3 --delay 1s -- ./script >output 2>&1 &
+processId=$!
+
+sleep 1 # Give the child time to start; TODO: find a better way
+
+outputBeforeStop=$(cat ./output)
+kill -s TERM ${processId}
+wait ${processId} 2>/dev/null
+
+assertEqual \
+  "No further attempts occur when a stop signal is received" \
+  "${outputBeforeStop}" \
   "$(cat ./output)"
 
 rm ./script ./output >/dev/null 2>&1
