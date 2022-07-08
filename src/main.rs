@@ -32,13 +32,12 @@ struct Args {
 }
 
 fn main() {
-    std::process::exit(run());
+    let args = Args::parse();
+    std::process::exit(run(args));
 }
 
 #[tokio::main]
-async fn run() -> i32 {
-    let args = Args::parse();
-
+async fn run(args: Args) -> i32 {
     let mut last_exit_code = 1;
     let mut num_attempts = 0;
     let mut should_stop = false;
