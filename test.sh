@@ -59,10 +59,17 @@ assertExitCode "The exit code is zero when the child exit code is zero" 0 "${BIN
 
 #
 # Given: The child exit code is non-zero
-#  Then: The exit code matches the child
+#  Then: The exit code matches the child exit code
 #
 givenScript "exit 2"
-assertExitCode "The exit code matches the child when the child exit code is non-zero" 2 "${BIN_PATH} --attempts 1 -- ./script"
+assertExitCode "The exit code matches the child exit code when the child exit code is non-zero" 2 "${BIN_PATH} --attempts 1 -- ./script"
+
+#
+# Given: The child exit code is non-zero
+#  Then: The exit code matches the last child exit code
+#
+givenScript "echo . >>output; exit \"\$(wc -l output | awk '{print \$1}')\""
+assertExitCode "The exit code matches the last child exit code when the child exit code is non-zero" 3 "${BIN_PATH} --attempts 3 --delay 0s -- ./script"
 
 #
 # Given: The child is running
