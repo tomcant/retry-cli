@@ -2,6 +2,9 @@ name: CI
 
 on: [push]
 
+env:
+  CARGO_TERM_COLOR: always
+
 jobs:
   checks:
     name: Checks
@@ -66,4 +69,4 @@ jobs:
           command: build
           args: --target ${{ matrix.target }}
       - name: Test
-        run: ./test.sh ./target/${{ matrix.target }}/debug/retry-cli
+        run: ./test.sh ./target/${{ matrix.target }}/debug/retry

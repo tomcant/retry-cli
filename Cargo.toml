@@ -1,7 +1,12 @@
 [package]
 name = "retry-cli"
 version = "0.2.3"
+license = "MIT"
 edition = "2021"
+
+[[bin]]
+name = "retry"
+path = "src/main.rs"
 
 [dependencies]
 clap = { version = "3.1", features = ["derive"] }

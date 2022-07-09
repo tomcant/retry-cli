@@ -5,6 +5,9 @@ on:
     tags:
       - "v[0-9]+.*"
 
+env:
+  CARGO_TERM_COLOR: always
+
 jobs:
   release:
     name: Release
@@ -42,9 +45,9 @@ jobs:
           args: --release --target ${{ matrix.target }}
       - name: Package
         run: |
-          strip ./target/${{ matrix.target }}/release/retry-cli
-          mv ./target/${{ matrix.target }}/release/retry-cli ./retry
-          tar -czvf retry-cli-${{ matrix.build }}.tar.gz ./retry
+          strip ./target/${{ matrix.target }}/release/retry
+          mv ./target/${{ matrix.target }}/release/retry .
+          tar -czvf retry-cli-${{ matrix.build }}.tar.gz ./retry ./README.md ./LICENSE
       - name: Release
         uses: softprops/action-gh-release@v1
         with:
