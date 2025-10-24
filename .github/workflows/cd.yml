@@ -18,18 +18,22 @@ jobs:
           - x86_64-linux-gnu
           - x86_64-linux-musl
           - x86_64-macos
+          - aarch64-macos
         include:
           - build: x86_64-linux-gnu
             target: x86_64-unknown-linux-gnu
-            os: ubuntu-20.04
+            os: ubuntu-latest
           - build: x86_64-linux-musl
             target: x86_64-unknown-linux-musl
-            os: ubuntu-20.04
+            os: ubuntu-latest
           - build: x86_64-macos
             target: x86_64-apple-darwin
-            os: macos-11
+            os: macos-latest
+          - build: aarch64-macos
+            target: aarch64-apple-darwin
+            os: macos-latest
     steps:
-      - uses: actions/checkout@v1
+      - uses: actions/checkout@v5
       - name: Install Rust
         uses: actions-rs/toolchain@v1
         with:
@@ -37,7 +41,7 @@ jobs:
           toolchain: stable
           target: ${{ matrix.target }}
           override: true
-      - uses: Swatinem/rust-cache@v1
+      - uses: Swatinem/rust-cache@v2
       - name: Build
         uses: actions-rs/cargo@v1
         with:
@@ -49,7 +53,7 @@ jobs:
           mv ./target/${{ matrix.target }}/release/retry .
           tar -czvf retry-cli-${{ matrix.build }}.tar.gz ./retry ./README.md ./LICENSE
       - name: Release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
           files: |
             ./retry-cli-${{ matrix.build }}.tar.gz
