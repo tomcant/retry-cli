@@ -15,43 +15,37 @@ See the [latest release](https://github.com/tomcant/retry-cli/releases) for supp
 ## Usage
 
 ```
-USAGE:
-    retry [OPTIONS] [--] <COMMAND>...
+Usage: retry [OPTIONS] <COMMAND>...
 
-ARGS:
-    <COMMAND>...    The command to run
+Arguments:
+  <COMMAND>...  The command to run
 
-OPTIONS:
-    -a, --attempts <ATTEMPTS>
-            The total number of attempts [default: 5]
-
-    -d, --delay <DELAY>
-            How long to wait before each retry [default: 1s]
-
-    -m, --delay-multiplier <DELAY_MULTIPLIER>
-            Multiply the delay after each failed attempt [default: 1]
-
-    -q, --quiet
-            Suppress output when the wrapped command fails
-
-    -h, --help
-            Print help information
-
-    -V, --version
-            Print version information
+Options:
+  -a, --attempts <ATTEMPTS>
+          The total number of attempts [default: 5]
+  -d, --delay <DELAY>
+          How long to wait before each retry [default: 1s]
+  -m, --delay-multiplier <DELAY_MULTIPLIER>
+          Multiply the delay after each failed attempt [default: 1]
+  -q, --quiet
+          Suppress output when the wrapped command fails
+  -h, --help
+          Print help
+  -V, --version
+          Print version
 ```
 
 ## Examples
 
 ```bash
 # Default 1 second delay before retrying, total of 5 attempts
-➜ retry -- /path/to/mission-critical-script.sh
+➜ retry /path/to/mission-critical-script.sh
 
 # No delay before retrying, total of 3 attempts
-➜ retry --delay 0s --attempts 3 -- ssh user@some.host some-remote-task
+➜ retry --delay 0s --attempts 3 ssh user@some.host some-remote-task
 
 # Exponential backoff: 10ms, 20ms, 40ms, 80ms, etc. before successive retries
-➜ retry --delay 10ms --delay-multiplier 2 -- /bin/sh -c "echo 'important work'"
+➜ retry --delay 10ms --delay-multiplier 2 /bin/sh -c "echo 'important work'"
 ```
 
 ## Output
@@ -60,7 +54,7 @@ All output from the child command is piped to the `stdout`/`stderr` streams of `
 If the child command exits with a non-zero code then a summary of each failed invocation is printed to `stderr` (unless the `-q|--quiet` option is provided).
 
 ```bash
-➜ retry -d 10ms -m 2 -- false
+➜ retry -d 10ms -m 2 false
 
 command `false` exited with non-zero code (1) on attempt #1; retrying in 10ms
 command `false` exited with non-zero code (1) on attempt #2; retrying in 20ms

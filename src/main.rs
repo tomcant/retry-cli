@@ -7,26 +7,26 @@ use tokio::{process::Command, time::sleep};
 
 /// A utility for retrying failed console commands
 #[derive(Parser)]
-#[clap(version)]
+#[command(version, arg_required_else_help = true)]
 struct Args {
     /// The total number of attempts
-    #[clap(short, long, default_value_t = 5, display_order = 1)]
+    #[arg(short, long, default_value_t = 5, display_order = 1)]
     attempts: u32,
 
     /// How long to wait before each retry
-    #[clap(short, long, default_value = "1s", display_order = 2)]
+    #[arg(short, long, default_value = "1s", display_order = 2)]
     delay: humantime::Duration,
 
     /// Multiply the delay after each failed attempt
-    #[clap(short = 'm', long, default_value_t = 1, display_order = 3)]
+    #[arg(short = 'm', long, default_value_t = 1, display_order = 3)]
     delay_multiplier: u32,
 
     /// Suppress output when the wrapped command fails
-    #[clap(short, long, display_order = 4)]
+    #[arg(short, long, display_order = 4)]
     quiet: bool,
 
     /// The command to run
-    #[clap(required = true, last = true)]
+    #[arg(trailing_var_arg = true, required = true, num_args = 1..)]
     command: Vec<String>,
 }
 
@@ -42,7 +42,7 @@ async fn run(args: Args) -> i32 {
     let mut should_stop = false;
     let mut delay: Duration = args.delay.into();
 
-    let mut signals = Signals::new(&[
+    let mut signals = Signals::new([
         signal::SIGHUP,
         signal::SIGINT,
         signal::SIGQUIT,
