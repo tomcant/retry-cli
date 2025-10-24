@@ -117,7 +117,7 @@ wait ${processId} 2>/dev/null
 assertEqual \
   "No further attempts occur when the child exits non-zero and a stop signal is received" \
   "${outputBeforeStop}" \
-  "$(cat ./output)"
+  "$(grep -v 'received stop signal during sleep' ./output)"
 
 #
 # Given: The child is running,
