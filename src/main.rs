@@ -50,7 +50,7 @@ async fn run(args: Args) -> i32 {
     ])
     .expect("error: could not create signal stream");
 
-    let log_failed_attempt = make_error_logger(args.quiet);
+    let log = make_logger(args.quiet);
 
     while num_attempts < args.attempts {
         let spawn = Command::new(&args.command[0])
@@ -78,7 +78,7 @@ async fn run(args: Args) -> i32 {
                             break;
                         }
 
-                        log_failed_attempt(format!(
+                        log(format!(
                             "command `{}` exited with non-zero code ({}) while handling stop signal",
                             args.command.join(" "),
                             code
@@ -103,7 +103,7 @@ async fn run(args: Args) -> i32 {
         num_attempts += 1;
 
         if num_attempts < args.attempts {
-            log_failed_attempt(format!(
+            log(format!(
                 "command `{}` exited with non-zero code ({}) on attempt #{}; retrying in {}",
                 args.command.join(" "),
                 last_exit_code,
@@ -116,6 +116,7 @@ async fn run(args: Args) -> i32 {
 
             tokio::select! {
                 Some(_signal) = signals.next() => {
+                    log(format!("received stop signal during sleep; exiting before attempt #{}", num_attempts + 1));
                     return last_exit_code;
                 }
                 _ = &mut backoff_sleep => {}
@@ -125,7 +126,7 @@ async fn run(args: Args) -> i32 {
         }
     }
 
-    log_failed_attempt(format!(
+    log(format!(
         "command `{}` exited with non-zero code ({}) on attempt #{}; maximum attempts reached",
         args.command.join(" "),
         last_exit_code,
@@ -135,7 +136,7 @@ async fn run(args: Args) -> i32 {
     last_exit_code
 }
 
-fn make_error_logger(quiet: bool) -> impl Fn(String) {
+fn make_logger(quiet: bool) -> impl Fn(String) {
     if quiet {
         |_msg| {}
     } else {
