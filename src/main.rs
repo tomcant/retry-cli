@@ -2,9 +2,8 @@ use clap::Parser;
 use futures::stream::StreamExt;
 use signal_hook::consts::signal;
 use signal_hook_tokio::Signals;
-use std::thread::sleep;
 use std::time::Duration;
-use tokio::process::Command;
+use tokio::{process::Command, time::sleep};
 
 /// A utility for retrying failed console commands
 #[derive(Parser)]
@@ -111,7 +110,17 @@ async fn run(args: Args) -> i32 {
                 num_attempts,
                 humantime::Duration::from(delay)
             ));
-            sleep(delay);
+
+            let backoff_sleep = sleep(delay);
+            tokio::pin!(backoff_sleep);
+
+            tokio::select! {
+                Some(_signal) = signals.next() => {
+                    return last_exit_code;
+                }
+                _ = &mut backoff_sleep => {}
+            }
+
             delay *= args.delay_multiplier;
         }
     }

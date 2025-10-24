@@ -148,6 +148,38 @@ assertEqual \
   "child received TERM signal" \
   "$(tail -n 1 ./output)"
 
+#
+# Given: The child exit code is non-zero,
+#        and we are sleeping before the next attempt
+#  When: A stop signal is received
+#  Then: The sleep is interrupted
+#
+givenScript "exit 1"
+${binPath} --attempts 2 --delay 5s -- ./script >output 2>&1 &
+processId=$!
+
+# Wait until we enter sleep by detecting the 'retrying in' output
+for i in $(seq 1 100); do
+  if grep -q 'retrying in' ./output; then
+    break
+  fi
+  sleep 0.05
+done
+
+beforeTs=$(date +%s)
+kill -s TERM ${processId}
+wait ${processId} 2>/dev/null
+afterTs=$(date +%s)
+elapsed=$((afterTs-beforeTs))
+
+interrupted=false
+[ ${elapsed} -lt 2 ] && interrupted=true
+
+assertEqual \
+  "Sleep between attempts is interrupted when a stop signal is received" \
+  "true" \
+  "${interrupted}"
+
 rm ./script ./output >/dev/null 2>&1
 
 [ ${failCount} = 0 ] && exit 0 || exit 1
