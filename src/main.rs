@@ -10,7 +10,7 @@ use tokio::{process::Command, time::sleep};
 #[command(version, arg_required_else_help = true)]
 struct Args {
     /// The total number of attempts
-    #[arg(short, long, default_value_t = 5, display_order = 1)]
+    #[arg(short, long, default_value_t = 5, value_parser = clap::value_parser!(u32).range(1..), display_order = 1)]
     attempts: u32,
 
     /// How long to wait before each retry
