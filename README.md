@@ -54,13 +54,13 @@ All output from the child command is piped to the `stdout`/`stderr` streams of `
 If the child command exits with a non-zero code then a summary of each failed invocation is printed to `stderr` (unless the `-q|--quiet` option is provided).
 
 ```bash
-➜ retry -d 10ms -m 2 false
+➜ retry -d 10ms -m 2 sh -c "exit 1"
 
-command `false` exited with non-zero code (1) on attempt #1; retrying in 10ms
-command `false` exited with non-zero code (1) on attempt #2; retrying in 20ms
-command `false` exited with non-zero code (1) on attempt #3; retrying in 40ms
-command `false` exited with non-zero code (1) on attempt #4; retrying in 80ms
-command `false` exited with non-zero code (1) on attempt #5; maximum attempts reached
+command `sh -c exit 1` exited with non-zero code (1) on attempt #1; retrying in 10ms
+command `sh -c exit 1` exited with non-zero code (1) on attempt #2; retrying in 20ms
+command `sh -c exit 1` exited with non-zero code (1) on attempt #3; retrying in 40ms
+command `sh -c exit 1` exited with non-zero code (1) on attempt #4; retrying in 80ms
+command `sh -c exit 1` exited with non-zero code (1) on attempt #5; maximum attempts reached
 
 ➜ echo $?
 
